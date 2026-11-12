@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Admin Complaint Management – CivicCare</title>
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#176B87">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CivicCare">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <!-- CivicCare Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .admin-filter-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Header / Navbar -->
+  <div id="navbar-container"></div>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar & Mobile Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Title Bar -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-extrabold mb-1"><i class="bi bi-shield-lock text-primary me-2"></i>Grievance Registry & Complaint Management</h2>
+          <p class="text-muted mb-0">System-wide complaint monitoring, department routing, priority overrides, and officer assignments</p>
+        </div>
+        <div>
+          <button class="btn btn-outline-secondary btn-sm" onclick="fetchAdminComplaintsRegistry()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh List</button>
+        </div>
+      </div>
+
+      <!-- Search & Filters Toolbar Card -->
+      <div class="admin-filter-card p-3 mb-4">
+        <div class="row g-3 align-items-center">
+          <!-- Search Input -->
+          <div class="col-lg-4 col-md-6">
+            <label class="form-label small fw-bold text-muted mb-1">Search Registry</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
+              <input type="text" id="admin-search-input" class="form-control" placeholder="Complaint ID, Citizen name, or Title..." onkeyup="handleAdminSearchKeyup(event)">
+              <button class="btn btn-primary px-3" onclick="triggerAdminFilterFetch()">Search</button>
+            </div>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="col-lg-2 col-6">
+            <label class="form-label small fw-bold text-muted mb-1">Status</label>
+            <select id="admin-status-filter" class="form-select" onchange="triggerAdminFilterFetch()">
+              <option value="All">All Statuses</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Assigned">Assigned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+
+          <!-- Category Filter -->
+          <div class="col-lg-2 col-6">
+            <label class="form-label small fw-bold text-muted mb-1">Category</label>
+            <select id="admin-category-filter" class="form-select" onchange="triggerAdminFilterFetch()">
+              <option value="All">All Categories</option>
+              <option value="Pothole">Pothole</option>
+              <option value="Waste Disposal">Waste Disposal</option>
+              <option value="Streetlight">Streetlight</option>
+              <option value="Water Leakage">Water Leakage</option>
+              <option value="Drainage">Drainage</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <!-- Priority Filter -->
+          <div class="col-lg-2 col-6">
+            <label class="form-label small fw-bold text-muted mb-1">Priority</label>
+            <select id="admin-priority-filter" class="form-select" onchange="triggerAdminFilterFetch()">
+              <option value="All">All Priorities</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+
+          <!-- Department Filter -->
+          <div class="col-lg-2 col-6">
+            <label class="form-label small fw-bold text-muted mb-1">Department</label>
+            <select id="admin-dept-filter" class="form-select" onchange="triggerAdminFilterFetch()">
+              <option value="All">All Departments</option>
+              <!-- Populated via JS -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Complaints Table Registry Card -->
+      <div class="card-civic">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-journal-text me-2 text-primary"></i>All Complaints Registry</h5>
+          <span class="badge bg-primary rounded-pill px-3 py-2" id="admin-total-count-badge">0 Complaints</span>
+        </div>
+        <div class="card-body p-0" id="admin-complaints-table-container">
+          <div class="p-5 text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted small mt-2">Loading grievances from database...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination Bar -->
+      <div id="admin-pagination-container" class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top d-none">
+        <span class="small text-muted" id="admin-pagination-info">Page 1 of 1</span>
+        <nav aria-label="Admin Registry Pagination">
+          <ul class="pagination pagination-sm mb-0" id="admin-pagination-buttons"></ul>
+        </nav>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>
+    let adminCurrentPage = 1;
+    const adminPageLimit = 10;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Auth.requireAuth(['admin']);
+      initAdminComplaintsPage();
+    });
+
+    async function initAdminComplaintsPage() {
+      // Load departments into dropdown
+      try {
+        const resDepts = await apiRequest('/departments');
+        if (resDepts.success) {
+          const select = document.getElementById('admin-dept-filter');
+          select.innerHTML = '<option value="All">All Departments</option>' +
+            resDepts.departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        }
+      } catch (e) {}
+
+      fetchAdminComplaintsRegistry();
+    }
+
+    function handleAdminSearchKeyup(e) {
+      if (e.key === 'Enter') triggerAdminFilterFetch();
+    }
+
+    function triggerAdminFilterFetch() {
+      adminCurrentPage = 1;
+      fetchAdminComplaintsRegistry();
+    }
+
+    /**
+     * Fetch Complaints Registry from GET /api/admin/complaints
+     */
+    async function fetchAdminComplaintsRegistry() {
+      const container = document.getElementById('admin-complaints-table-container');
+      container.innerHTML = `<div class="p-5 text-center"><div class="spinner-border text-primary"></div></div>`;
+
+      const searchVal = document.getElementById('admin-search-input').value.trim();
+      const statusVal = document.getElementById('admin-status-filter').value;
+      const categoryVal = document.getElementById('admin-category-filter').value;
+      const priorityVal = document.getElementById('admin-priority-filter').value;
+      const deptVal = document.getElementById('admin-dept-filter').value;
+
+      const params = new URLSearchParams({
+        search: searchVal,
+        status: statusVal,
+        category: categoryVal,
+        priority: priorityVal,
+        department_id: deptVal,
+        page: adminCurrentPage,
+        limit: adminPageLimit
+      });
+
+      try {
+        const res = await apiRequest(`/admin/complaints?${params.toString()}`);
+        if (!res.success) return;
+
+        const { complaints, total, totalPages, page } = res;
+        document.getElementById('admin-total-count-badge').textContent = `${total} Complaints`;
+
+        if (!complaints || complaints.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-5 px-3">
+              <div class="fs-1 text-muted mb-2"><i class="bi bi-folder-x"></i></div>
+              <h5 class="fw-bold text-dark mb-1">No complaints found matching criteria</h5>
+              <p class="text-muted small mb-0">Try clearing filters or search term.</p>
+            </div>
+          `;
+          document.getElementById('admin-pagination-container').classList.add('d-none');
+          return;
+        }
+
+        const rows = complaints.map(c => `
+          <tr>
+            <td data-label="Complaint ID">
+              <a href="#" onclick="openAdminReviewModal(${c.id})" class="fw-bold text-decoration-none text-primary">${c.complaint_number}</a>
+            </td>
+            <td data-label="Citizen">
+              <span class="fw-bold text-dark">${c.citizen_name}</span><br>
+              <small class="text-muted">${c.citizen_email || ''}</small>
+            </td>
+            <td data-label="Category"><span class="badge bg-light text-dark border">${c.category}</span></td>
+            <td data-label="Priority">${getPriorityBadge(c.priority)}</td>
+            <td data-label="Department"><small class="fw-semibold text-secondary">${c.department_name || '<span class="text-danger">Unassigned</span>'}</small></td>
+            <td data-label="Officer"><small class="text-dark">${c.officer_name || '<span class="text-muted">Unassigned</span>'}</small></td>
+            <td data-label="Status">${getStatusBadge(c.status)}</td>
+            <td data-label="Created"><small class="text-muted">${new Date(c.created_at).toLocaleDateString()}</small></td>
+            <td data-label="Actions">
+              <div class="d-flex gap-1 justify-content-end flex-wrap" role="group">
+                <a href="/admin/complaints/${c.id}/assign" class="btn btn-sm btn-outline-primary" title="Assign Complaint">
+                  <i class="bi bi-person-plus-fill me-1"></i> Assign
+                </a>
+                <button class="btn btn-sm btn-outline-secondary" onclick="openAdminReviewModal(${c.id})" title="Review & Detailed View">
+                  <i class="bi bi-eye-fill"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="quickUpdatePriorityPrompt(${c.id}, '${c.priority}')" title="Quick Priority">
+                  <i class="bi bi-flag-fill"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+
+        container.innerHTML = `
+          <div class="table-responsive">
+            <table class="table table-hover table-civic responsive-data-grid align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Complaint ID</th>
+                  <th>Citizen</th>
+                  <th>Category</th>
+                  <th>Priority</th>
+                  <th>Department</th>
+                  <th>Officer</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        renderAdminPagination(totalPages, page, total);
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger m-3">Failed to load admin complaints.</div>`;
+      }
+    }
+
+    function renderAdminPagination(totalPages, activePage, totalCount) {
+      const pagContainer = document.getElementById('admin-pagination-container');
+      const infoEl = document.getElementById('admin-pagination-info');
+      const btnContainer = document.getElementById('admin-pagination-buttons');
+
+      if (totalPages <= 1) {
+        pagContainer.classList.add('d-none');
+        return;
+      }
+
+      pagContainer.classList.remove('d-none');
+      infoEl.textContent = `Page ${activePage} of ${totalPages} (${totalCount} total entries)`;
+
+      let btns = `
+        <li class="page-item ${activePage === 1 ? 'disabled' : ''}">
+          <button class="page-link" onclick="changeAdminPage(${activePage - 1})">Previous</button>
+        </li>
+      `;
+
+      for (let i = 1; i <= totalPages; i++) {
+        btns += `
+          <li class="page-item ${i === activePage ? 'active' : ''}">
+            <button class="page-link" onclick="changeAdminPage(${i})">${i}</button>
+          </li>
+        `;
+      }
+
+      btns += `
+        <li class="page-item ${activePage === totalPages ? 'disabled' : ''}">
+          <button class="page-link" onclick="changeAdminPage(${activePage + 1})">Next</button>
+        </li>
+      `;
+
+      btnContainer.innerHTML = btns;
+    }
+
+    function changeAdminPage(page) {
+      adminCurrentPage = page;
+      fetchAdminComplaintsRegistry();
+    }
+
+    /**
+     * Quick Priority Override Prompt
+     */
+    async function quickUpdatePriorityPrompt(complaintId, currentPriority) {
+      const newPrio = prompt(`Select new priority (Low, Medium, High, Critical):`, currentPriority);
+      if (!newPrio || newPrio === currentPriority) return;
+
+      if (!['Low', 'Medium', 'High', 'Critical'].includes(newPrio)) {
+        showToast('Invalid priority choice.', 'warning');
+        return;
+      }
+
+      try {
+        const res = await apiRequest(`/admin/complaints/${complaintId}/priority`, 'PUT', { priority: newPrio });
+        if (res.success) {
+          showToast(res.message, 'success');
+          fetchAdminComplaintsRegistry();
+        }
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

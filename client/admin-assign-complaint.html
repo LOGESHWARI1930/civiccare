@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Assign Complaint – CivicCare Admin</title>
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#176B87">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CivicCare">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <!-- CivicCare Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+  <!-- Dynamic Navbar -->
+  <div id="navbar-container"></div>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar & Mobile Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- Top Title & Navigation Bar -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <a href="/admin/complaints" class="text-decoration-none text-secondary small fw-bold d-block mb-1">
+            <i class="bi bi-arrow-left me-1"></i> Back to Complaints Registry
+          </a>
+          <h2 class="fw-extrabold mb-1"><i class="bi bi-person-gear text-primary me-2"></i>Complaint Assignment Workflow</h2>
+          <p class="text-muted mb-0">Assign department, select active field officer, override priority, and set target resolution timeline</p>
+        </div>
+      </div>
+
+      <!-- Loading State Spinner -->
+      <div id="assign-loading-state" class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted small mt-2">Loading grievance details from database...</p>
+      </div>
+
+      <!-- Main Assignment View (Hidden until loaded) -->
+      <div id="assign-content-area" class="d-none">
+        <div class="row g-4">
+          
+          <!-- Left Column: Complaint Details & Citizen Profile -->
+          <div class="col-lg-7">
+            
+            <!-- Complaint Summary Card -->
+            <div class="card-civic mb-4">
+              <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                  <h5 class="mb-0 fw-bold text-dark" id="disp-complaint-number">GRV-2026-00000</h5>
+                  <span class="badge bg-light text-dark border" id="disp-category">Category</span>
+                </div>
+                <div id="disp-status-badge"></div>
+              </div>
+              <div class="card-body">
+                <h5 class="fw-bold text-dark mb-2" id="disp-title">Title</h5>
+                <p class="text-secondary mb-3" id="disp-description">Description...</p>
+
+                <!-- Photo Evidence -->
+                <div id="disp-image-container" class="mb-3 d-none">
+                  <small class="text-muted d-block fw-bold mb-1"><i class="bi bi-camera me-1"></i>Photo Evidence</small>
+                  <a id="disp-image-link" href="#" target="_blank">
+                    <img id="disp-image" src="" alt="Grievance Evidence" class="img-fluid rounded border shadow-sm style-preview-img" style="max-height: 240px; object-fit: cover; width: 100%;">
+                  </a>
+                </div>
+
+                <!-- Citizen Info Table -->
+                <div class="p-3 bg-light rounded border mb-3">
+                  <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-vcard me-2"></i>Citizen Information</h6>
+                  <div class="row g-2 small">
+                    <div class="col-sm-6"><strong>Citizen Name:</strong> <span id="disp-citizen-name" class="text-dark"></span></div>
+                    <div class="col-sm-6"><strong>Email:</strong> <span id="disp-citizen-email" class="text-dark"></span></div>
+                    <div class="col-sm-6"><strong>Phone:</strong> <span id="disp-citizen-phone" class="text-dark"></span></div>
+                    <div class="col-sm-6"><strong>Submitted On:</strong> <span id="disp-created-at" class="text-dark"></span></div>
+                  </div>
+                </div>
+
+                <!-- Location & Map -->
+                <div class="p-3 bg-light rounded border">
+                  <h6 class="fw-bold text-primary mb-2"><i class="bi bi-geo-alt-fill me-2"></i>Location Details</h6>
+                  <p class="text-dark small mb-2" id="disp-location-address"><i class="bi bi-pin-map text-danger me-1"></i>Address</p>
+                  <div id="assign-leaflet-map" style="height: 200px; width: 100%;" class="rounded border mt-2"></div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Assignment Form -->
+          <div class="col-lg-5">
+            <div class="card-civic sticky-top" style="top: 1.5rem;">
+              <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-clipboard-check me-2"></i>Assignment Form</h5>
+              </div>
+              <div class="card-body p-4">
+                <form id="assign-complaint-form">
+                  
+                  <!-- Priority Dropdown -->
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">Priority Level <span class="text-danger">*</span></label>
+                    <select name="priority" id="field-priority" class="form-select" required>
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Critical">Critical</option>
+                    </select>
+                    <div class="form-text small">Override urgency level based on public impact</div>
+                  </div>
+
+                  <!-- Department Dropdown -->
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">Select Department <span class="text-danger">*</span></label>
+                    <select name="department_id" id="field-department" class="form-select" required>
+                      <option value="">-- Select Department --</option>
+                    </select>
+                    <div class="form-text small">Loaded dynamically from system database</div>
+                  </div>
+
+                  <!-- Officer Dropdown (Active Officers Only) -->
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">Assign Field Officer</label>
+                    <select name="officer_id" id="field-officer" class="form-select">
+                      <option value="">-- Select Department First --</option>
+                    </select>
+                    <div class="form-text small text-info"><i class="bi bi-shield-check me-1"></i>Only active officers are listed</div>
+                  </div>
+
+                  <!-- Optional Target Resolution Date -->
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">Target Resolution Date <span class="text-muted font-normal">(Optional)</span></label>
+                    <input type="date" name="target_resolution_date" id="field-target-date" class="form-control">
+                    <div class="form-text small">Expected SLA completion deadline</div>
+                  </div>
+
+                  <!-- Admin Note / Instructions -->
+                  <div class="mb-4">
+                    <label class="form-label fw-bold">Instructions / Admin Notes</label>
+                    <textarea name="comment" id="field-comment" class="form-control" rows="3" placeholder="Internal routing notes or action items for assigned officer..."></textarea>
+                  </div>
+
+                  <!-- Submit Button -->
+                  <button type="submit" id="submit-assign-btn" class="btn btn-primary btn-lg w-100 fw-bold">
+                    <i class="bi bi-person-check-fill me-2"></i>Assign Complaint
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    let currentComplaintId = null;
+    let leafletMapInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Auth.requireAuth(['admin']);
+
+      // Parse complaint ID from URL (/admin/complaints/:id/assign or ?id=X)
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      let idFromPath = null;
+      if (pathParts.length >= 3 && pathParts[0] === 'admin' && pathParts[1] === 'complaints') {
+        idFromPath = pathParts[2];
+      }
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      currentComplaintId = idFromPath || urlParams.get('id');
+
+      if (!currentComplaintId) {
+        showToast('Invalid complaint ID specified.', 'danger');
+        setTimeout(() => window.location.href = '/admin/complaints', 1500);
+        return;
+      }
+
+      // Set min date for target resolution date picker to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('field-target-date').setAttribute('min', today);
+
+      loadAssignmentPageData(currentComplaintId);
+    });
+
+    /**
+     * Load Complaint details & Department list
+     */
+    async function loadAssignmentPageData(complaintId) {
+      try {
+        const [resComp, resDepts] = await Promise.all([
+          apiRequest(`/complaints/${complaintId}`),
+          apiRequest('/departments')
+        ]);
+
+        if (!resComp.success || !resDepts.success) {
+          showToast('Failed to load complaint or departments.', 'danger');
+          return;
+        }
+
+        const c = resComp.complaint;
+        const depts = resDepts.departments;
+
+        // Populate Complaint Details UI
+        document.getElementById('disp-complaint-number').textContent = c.complaint_number;
+        document.getElementById('disp-category').textContent = c.category;
+        document.getElementById('disp-status-badge').innerHTML = getStatusBadge(c.status);
+        document.getElementById('disp-title').textContent = c.title;
+        document.getElementById('disp-description').textContent = c.description;
+
+        document.getElementById('disp-citizen-name').textContent = c.citizen_name || 'N/A';
+        document.getElementById('disp-citizen-email').textContent = c.citizen_email || 'N/A';
+        document.getElementById('disp-citizen-phone').textContent = c.citizen_phone || 'N/A';
+        document.getElementById('disp-created-at').textContent = new Date(c.created_at).toLocaleString();
+
+        document.getElementById('disp-location-address').textContent = c.location_address || 'Address recorded.';
+
+        if (c.image_url) {
+          document.getElementById('disp-image').src = c.image_url;
+          document.getElementById('disp-image-link').href = c.image_url;
+          document.getElementById('disp-image-container').classList.remove('d-none');
+        }
+
+        // Render Leaflet Map
+        if (c.latitude && c.longitude && window.L) {
+          leafletMapInstance = L.map('assign-leaflet-map').setView([c.latitude, c.longitude], 14);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+          }).addTo(leafletMapInstance);
+          L.marker([c.latitude, c.longitude]).addTo(leafletMapInstance)
+            .bindPopup(`<b>${c.complaint_number}</b><br>${c.title}`).openPopup();
+        } else {
+          document.getElementById('assign-leaflet-map').innerHTML = `<div class="p-3 text-center text-muted small bg-white rounded h-100 d-flex align-items-center justify-content-center">No GPS coordinates logged for map rendering.</div>`;
+        }
+
+        // Populate Priority Dropdown
+        document.getElementById('field-priority').value = c.priority || 'Medium';
+
+        // Populate Department Dropdown
+        const deptSelect = document.getElementById('field-department');
+        deptSelect.innerHTML = '<option value="">-- Select Department --</option>' +
+          depts.map(d => `<option value="${d.id}" ${c.department_id === d.id ? 'selected' : ''}>${d.name}</option>`).join('');
+
+        // Department change listener -> fetch officers
+        deptSelect.addEventListener('change', (e) => loadActiveOfficers(e.target.value, null));
+
+        if (c.department_id) {
+          await loadActiveOfficers(c.department_id, c.officer_id);
+        }
+
+        // Show content area
+        document.getElementById('assign-loading-state').classList.add('d-none');
+        document.getElementById('assign-content-area').classList.remove('d-none');
+
+      } catch (err) {
+        console.error('Load Assignment Page Error:', err);
+        showToast('Error loading assignment workflow data.', 'danger');
+      }
+    }
+
+    /**
+     * Load Active Officers dynamically from GET /api/departments/:id/officers
+     */
+    async function loadActiveOfficers(deptId, currentOfficerId) {
+      const officerSelect = document.getElementById('field-officer');
+      if (!deptId) {
+        officerSelect.innerHTML = `<option value="">-- Select Department First --</option>`;
+        return;
+      }
+
+      officerSelect.innerHTML = `<option value="">Loading active officers...</option>`;
+
+      try {
+        const res = await apiRequest(`/departments/${deptId}/officers`);
+        if (res.success) {
+          const officers = res.officers || [];
+          if (officers.length === 0) {
+            officerSelect.innerHTML = `<option value="">-- No Active Officers Available (Department Pool) --</option>`;
+            return;
+          }
+
+          officerSelect.innerHTML = `<option value="">-- Unassigned (Department Queue) --</option>` +
+            officers.map(o => `
+              <option value="${o.officer_id}" ${currentOfficerId === o.officer_id ? 'selected' : ''}>
+                ${o.officer_name} (${o.employee_id}) - Workload: ${o.current_active_workload || 0} active
+              </option>
+            `).join('');
+        }
+      } catch (err) {
+        officerSelect.innerHTML = `<option value="">Failed to load officers</option>`;
+      }
+    }
+
+    // Submit Assignment Form
+    document.getElementById('assign-complaint-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('submit-assign-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Assigning...`;
+
+      const formData = {
+        priority: document.getElementById('field-priority').value,
+        department_id: document.getElementById('field-department').value,
+        officer_id: document.getElementById('field-officer').value || null,
+        target_resolution_date: document.getElementById('field-target-date').value || null,
+        comment: document.getElementById('field-comment').value.trim()
+      };
+
+      try {
+        const res = await apiRequest(`/admin/complaints/${currentComplaintId}/assign`, 'PUT', formData);
+        
+        if (res.success) {
+          showToast(res.message || 'Complaint assigned successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = '/admin/complaints';
+          }, 1500);
+        } else {
+          showToast(res.message || 'Failed to assign complaint.', 'danger');
+          btn.disabled = false;
+          btn.innerHTML = `<i class="bi bi-person-check-fill me-2"></i>Assign Complaint`;
+        }
+      } catch (err) {
+        console.error('Assign Submit Error:', err);
+        showToast(err.message || 'Server error occurred during assignment.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-person-check-fill me-2"></i>Assign Complaint`;
+      }
+    });
+  </script>
+</body>
+</html>

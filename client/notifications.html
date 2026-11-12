@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Notifications Center – CivicCare</title>
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#176B87">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CivicCare">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <!-- CivicCare Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .notif-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+    .notif-card:hover {
+      border-color: #176B87;
+      box-shadow: 0 4px 12px rgba(23, 107, 135, 0.08);
+      transform: translateY(-1px);
+    }
+    .notif-card.unread {
+      background: #F0F9FF;
+      border-left: 4px solid #0284C7;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Header / Navbar -->
+  <div id="navbar-container"></div>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar & Mobile Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Title Bar -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-extrabold mb-1"><i class="bi bi-bell-fill text-primary me-2"></i>Notifications Center</h2>
+          <p class="text-muted mb-0">System updates, grievance status progress, and officer field assignment alerts</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-danger rounded-pill px-3 py-2 d-none" id="unread-count-header">0 Unread Alerts</span>
+          <button class="btn btn-outline-primary btn-sm fw-bold" onclick="markAllAsReadHandler()">
+            <i class="bi bi-check-all me-1"></i> Mark All as Read
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="notifications-loading" class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted small mt-2">Loading notifications from database...</p>
+      </div>
+
+      <!-- Notifications Container -->
+      <div id="notifications-list-container" class="d-none">
+        <!-- Rendered via JS -->
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      Auth.requireAuth();
+      fetchNotificationsPageData();
+    });
+
+    /**
+     * Fetch Notifications from GET /api/notifications
+     */
+    async function fetchNotificationsPageData() {
+      const container = document.getElementById('notifications-list-container');
+      const loader = document.getElementById('notifications-loading');
+      const headerBadge = document.getElementById('unread-count-header');
+
+      try {
+        const res = await apiRequest('/notifications');
+        if (!res.success) return;
+
+        const notifications = res.notifications || [];
+        const unreadCount = res.unreadCount || 0;
+
+        if (headerBadge) {
+          if (unreadCount > 0) {
+            headerBadge.textContent = `${unreadCount} Unread Alert${unreadCount > 1 ? 's' : ''}`;
+            headerBadge.classList.remove('d-none');
+          } else {
+            headerBadge.classList.add('d-none');
+          }
+        }
+
+        if (notifications.length === 0) {
+          container.innerHTML = `
+            <div class="card-civic text-center py-5 px-3">
+              <div class="fs-1 text-muted mb-2"><i class="bi bi-bell-slash"></i></div>
+              <h5 class="fw-bold text-dark mb-1">You're all caught up!</h5>
+              <p class="text-muted small mb-0">No notifications found in your account.</p>
+            </div>
+          `;
+          loader.classList.add('d-none');
+          container.classList.remove('d-none');
+          return;
+        }
+
+        const user = Auth.getUser();
+
+        const itemsHtml = notifications.map(n => {
+          const isUnread = !n.is_read;
+          const timeAgo = formatTimeAgo(n.created_at);
+
+          return `
+            <div class="notif-card ${isUnread ? 'unread' : ''} p-3 mb-3 shadow-sm" onclick="handleNotificationClick(${n.id}, ${n.complaint_id || 'null'}, '${user ? user.role : 'citizen'}')">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-start gap-3">
+                  <div class="icon-box ${isUnread ? 'primary' : 'secondary'} rounded-circle p-2 fs-5">
+                    <i class="bi ${isUnread ? 'bi-bell-fill text-primary' : 'bi-bell text-muted'}"></i>
+                  </div>
+                  <div>
+                    <h6 class="fw-bold ${isUnread ? 'text-dark' : 'text-secondary'} mb-1">${n.message}</h6>
+                    <div class="d-flex align-items-center gap-2 small text-muted">
+                      <span><i class="bi bi-clock me-1"></i>${timeAgo} (${new Date(n.created_at).toLocaleString()})</span>
+                      ${n.complaint_number ? `<span class="badge bg-light text-dark border">${n.complaint_number}</span>` : ''}
+                      ${isUnread ? `<span class="badge bg-primary ms-2"><i class="bi bi-dot"></i>New</span>` : ''}
+                    </div>
+                  </div>
+                </div>
+
+                ${isUnread ? `
+                  <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); markSingleRead(${n.id})" title="Mark as Read">
+                    <i class="bi bi-check2 me-1"></i>Mark Read
+                  </button>
+                ` : `
+                  <span class="small text-muted"><i class="bi bi-check2-all text-success me-1"></i>Read</span>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        container.innerHTML = itemsHtml;
+        loader.classList.add('d-none');
+        container.classList.remove('d-none');
+
+      } catch (err) {
+        console.error('Fetch Notifications Error:', err);
+        loader.classList.add('d-none');
+        container.innerHTML = `<div class="alert alert-danger m-3">Failed to load notifications list.</div>`;
+        container.classList.remove('d-none');
+      }
+    }
+
+    /**
+     * Handle Notification Click -> Mark as Read -> Navigate to relevant complaint
+     */
+    async function handleNotificationClick(notifId, complaintId, userRole) {
+      try {
+        await apiRequest(`/notifications/${notifId}/read`, 'PUT');
+      } catch (e) {}
+
+      if (!complaintId) {
+        fetchNotificationsPageData();
+        return;
+      }
+
+      // Navigate based on user role
+      if (userRole === 'officer') {
+        window.location.href = `/officer/complaints/${complaintId}`;
+      } else if (userRole === 'admin') {
+        window.location.href = `/admin/complaints`;
+      } else {
+        // Citizen default
+        window.location.href = `/citizen/complaints/${complaintId}`;
+      }
+    }
+
+    /**
+     * Mark Single Notification Read
+     */
+    async function markSingleRead(notifId) {
+      try {
+        const res = await apiRequest(`/notifications/${notifId}/read`, 'PUT');
+        if (res.success) {
+          showToast('Notification marked as read.', 'success');
+          fetchNotificationsPageData();
+          loadUnreadNotificationBadge();
+        }
+      } catch (err) {
+        showToast('Failed to mark notification as read.', 'danger');
+      }
+    }
+
+    /**
+     * Mark All Notifications Read Handler
+     */
+    async function markAllAsReadHandler() {
+      try {
+        const res = await apiRequest('/notifications/read-all', 'PUT');
+        if (res.success) {
+          showToast('All notifications marked as read!', 'success');
+          fetchNotificationsPageData();
+          loadUnreadNotificationBadge();
+        }
+      } catch (err) {
+        showToast('Failed to mark all as read.', 'danger');
+      }
+    }
+
+    /**
+     * Time ago formatter helper
+     */
+    function formatTimeAgo(dateString) {
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      const days = Math.floor(hours / 24);
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+  </script>
+</body>
+</html>

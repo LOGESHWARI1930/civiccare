@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="civicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#176B87"/>
+      <stop offset="100%" stop-color="#0F4C5C"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64CCC5"/>
+      <stop offset="100%" stop-color="#4fb3ac"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#civicGrad)"/>
+  
+  <!-- City Skyline Silhouette Background -->
+  <path d="M120 330 L120 250 L160 250 L160 210 L210 210 L210 280 L250 280 L250 180 L310 180 L310 260 L360 260 L360 330 Z" fill="rgba(255, 255, 255, 0.15)"/>
+  
+  <!-- Shield Emblem -->
+  <path d="M256 96 C336 96 384 128 384 128 C384 272 256 384 256 384 C256 384 128 272 128 128 C128 128 176 96 256 96 Z" fill="none" stroke="url(#accentGrad)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Center Checkmark -->
+  <path d="M208 240 L242 274 L308 200" fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Pulse Dot at Base -->
+  <circle cx="256" cy="420" r="14" fill="url(#accentGrad)"/>
+</svg>

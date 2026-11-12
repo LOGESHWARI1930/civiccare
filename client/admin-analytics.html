@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Grievance Analytics & Metrics – CivicCare Admin</title>
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#176B87">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CivicCare">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <!-- CivicCare Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .analytics-filter-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .chart-container-card {
+      height: 380px;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Header / Navbar -->
+  <div id="navbar-container"></div>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar & Mobile Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Title Bar -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-extrabold mb-1"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Executive Grievance Analytics</h2>
+          <p class="text-muted mb-0">Real-time analytical visualization of municipal issues, department performance, and location insights</p>
+        </div>
+        <div>
+          <button class="btn btn-outline-secondary btn-sm" onclick="fetchAnalyticsData()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Analytics</button>
+        </div>
+      </div>
+
+      <!-- Date Range Filter Toolbar Card -->
+      <div class="analytics-filter-card p-3 mb-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-3 col-6">
+            <label class="form-label small fw-bold text-muted mb-1">Time Period Filter</label>
+            <select id="analytics-range-select" class="form-select" onchange="handleRangeFilterChange()">
+              <option value="7days">Last 7 Days</option>
+              <option value="30days" selected>Last 30 Days</option>
+              <option value="6months">Last 6 Months</option>
+              <option value="custom">Custom Range...</option>
+            </select>
+          </div>
+
+          <!-- Custom Date Pickers (Hidden unless custom range selected) -->
+          <div class="col-md-3 col-6 custom-date-container d-none">
+            <label class="form-label small fw-bold text-muted mb-1">Start Date</label>
+            <input type="date" id="analytics-start-date" class="form-control">
+          </div>
+          <div class="col-md-3 col-6 custom-date-container d-none">
+            <label class="form-label small fw-bold text-muted mb-1">End Date</label>
+            <input type="date" id="analytics-end-date" class="form-control">
+          </div>
+
+          <div class="col-md-3 col-12">
+            <label class="form-label d-none d-md-block opacity-0 small mb-1">Action</label>
+            <button class="btn btn-primary w-100 fw-bold" onclick="fetchAnalyticsData()">
+              <i class="bi bi-funnel-fill me-1"></i> Apply Filter
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 TOP KPI CARDS -->
+      <div class="row g-3 mb-4" id="analytics-kpi-cards">
+        <div class="col-md-3 col-6">
+          <div class="stat-card border-primary">
+            <div class="icon-box primary"><i class="bi bi-journal-stack"></i></div>
+            <div class="stat-value text-primary" id="kpi-total-complaints">0</div>
+            <div class="stat-label">Total Complaints</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="stat-card border-success">
+            <div class="icon-box success" style="background-color: #DCFCE7; color: #15803D;"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-value text-success" id="kpi-resolved-complaints">0</div>
+            <div class="stat-label">Resolved Complaints</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="stat-card border-info">
+            <div class="icon-box info" style="background-color: #E0F2FE; color: #0369A1;"><i class="bi bi-percent"></i></div>
+            <div class="stat-value text-info" id="kpi-resolution-rate">0%</div>
+            <div class="stat-label">Resolution Rate</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="stat-card border-warning">
+            <div class="icon-box warning" style="background-color: #FEF3C7; color: #B45309;"><i class="bi bi-clock-history"></i></div>
+            <div class="stat-value" style="color: #B45309;" id="kpi-avg-resolution-time">0 Days</div>
+            <div class="stat-label">Avg Resolution Time</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 CHART.JS VISUALIZATION GRID -->
+      <div class="row g-4 mb-4">
+        
+        <!-- Chart 1: Complaint Trend (Line Chart) -->
+        <div class="col-lg-7">
+          <div class="card-civic h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-graph-up text-primary me-2"></i>Complaint Trend (Over Time)</h5>
+              <span class="badge bg-light text-muted border">Daily Volume</span>
+            </div>
+            <div class="card-body p-3 chart-container-card">
+              <canvas id="chart-trend-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 2: Status Distribution (Doughnut Chart) -->
+        <div class="col-lg-5">
+          <div class="card-civic h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-pie-chart-fill text-info me-2"></i>Status Distribution</h5>
+              <span class="badge bg-light text-muted border">Current State</span>
+            </div>
+            <div class="card-body p-3 chart-container-card d-flex align-items-center justify-content-center">
+              <canvas id="chart-status-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 3: Category Distribution (Bar Chart) -->
+        <div class="col-lg-6">
+          <div class="card-civic h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-bar-chart-line-fill text-warning me-2"></i>Category Breakdown</h5>
+              <span class="badge bg-light text-muted border">Potholes, Waste, Lighting, Water...</span>
+            </div>
+            <div class="card-body p-3 chart-container-card">
+              <canvas id="chart-category-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 4: Department Performance (Bar Chart - Total vs Resolved vs Pending) -->
+        <div class="col-lg-6">
+          <div class="card-civic h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+              <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-building-fill text-success me-2"></i>Department Performance</h5>
+              <span class="badge bg-light text-muted border">Total vs Resolved vs Pending</span>
+            </div>
+            <div class="card-body p-3 chart-container-card">
+              <canvas id="chart-department-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- LOCATION INSIGHTS SECTION -->
+      <div class="card-civic mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Location Insights & Area Hotspots</h5>
+          <span class="badge bg-light text-dark border">Grouped by Area / Ward</span>
+        </div>
+        <div class="card-body p-0" id="analytics-location-container">
+          <div class="p-5 text-center">
+            <div class="spinner-border text-primary"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    let trendChartInstance = null;
+    let statusChartInstance = null;
+    let categoryChartInstance = null;
+    let deptChartInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Auth.requireAuth(['admin']);
+      fetchAnalyticsData();
+    });
+
+    function handleRangeFilterChange() {
+      const val = document.getElementById('analytics-range-select').value;
+      const customEls = document.querySelectorAll('.custom-date-container');
+      
+      if (val === 'custom') {
+        customEls.forEach(el => el.classList.remove('d-none'));
+      } else {
+        customEls.forEach(el => el.classList.add('d-none'));
+        fetchAnalyticsData();
+      }
+    }
+
+    /**
+     * Fetch Analytics Data from GET /api/admin/analytics
+     */
+    async function fetchAnalyticsData() {
+      const range = document.getElementById('analytics-range-select').value;
+      const startDate = document.getElementById('analytics-start-date').value;
+      const endDate = document.getElementById('analytics-end-date').value;
+
+      const params = new URLSearchParams({ range });
+      if (range === 'custom') {
+        if (!startDate || !endDate) {
+          showToast('Please select both start and end date for custom range.', 'warning');
+          return;
+        }
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
+      }
+
+      try {
+        const res = await apiRequest(`/admin/analytics?${params.toString()}`);
+        if (!res.success) return;
+
+        const { kpis, trend, categoryDistribution, statusDistribution, departmentPerformance, locationInsights } = res;
+
+        // 1. TOP KPI CARDS
+        document.getElementById('kpi-total-complaints').textContent = kpis.totalComplaints || 0;
+        document.getElementById('kpi-resolved-complaints').textContent = kpis.resolvedComplaints || 0;
+        document.getElementById('kpi-resolution-rate').textContent = kpis.resolutionRate || '0%';
+        document.getElementById('kpi-avg-resolution-time').textContent = kpis.avgResolutionTime || 'N/A';
+
+        // 2. RENDER CHART 1: COMPLAINT TREND (Line Chart)
+        renderTrendChart(trend || []);
+
+        // 3. RENDER CHART 2: STATUS DISTRIBUTION (Doughnut Chart)
+        renderStatusChart(statusDistribution || []);
+
+        // 4. RENDER CHART 3: CATEGORY DISTRIBUTION (Bar Chart)
+        renderCategoryChart(categoryDistribution || []);
+
+        // 5. RENDER CHART 4: DEPARTMENT PERFORMANCE (Multi-Bar Chart)
+        renderDepartmentChart(departmentPerformance || []);
+
+        // 6. RENDER LOCATION INSIGHTS TABLE
+        renderLocationInsights(locationInsights || []);
+
+      } catch (err) {
+        console.error('Fetch Analytics Error:', err);
+        showToast('Failed to load analytics metrics.', 'danger');
+      }
+    }
+
+    // Chart 1: Complaint Trend Line Chart
+    function renderTrendChart(trendData) {
+      const ctx = document.getElementById('chart-trend-canvas');
+      if (!ctx) return;
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: trendData.map(t => new Date(t.date).toLocaleDateString()),
+          datasets: [{
+            label: 'Complaints Filed',
+            data: trendData.map(t => t.count),
+            borderColor: '#176B87',
+            backgroundColor: 'rgba(23, 107, 135, 0.15)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointBackgroundColor: '#176B87'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // Chart 2: Status Doughnut Chart
+    function renderStatusChart(statusData) {
+      const ctx = document.getElementById('chart-status-canvas');
+      if (!ctx) return;
+      if (statusChartInstance) statusChartInstance.destroy();
+
+      statusChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: statusData.map(s => s.status),
+          datasets: [{
+            data: statusData.map(s => s.count),
+            backgroundColor: ['#FEF3C7', '#E0F2FE', '#E0E7FF', '#BAE6FD', '#DCFCE7', '#FEE2E2']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'right' } }
+        }
+      });
+    }
+
+    // Chart 3: Category Bar Chart
+    function renderCategoryChart(categoryData) {
+      const ctx = document.getElementById('chart-category-canvas');
+      if (!ctx) return;
+      if (categoryChartInstance) categoryChartInstance.destroy();
+
+      categoryChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: categoryData.map(c => c.category),
+          datasets: [{
+            label: 'Total Complaints',
+            data: categoryData.map(c => c.count),
+            backgroundColor: ['#176B87', '#0284C7', '#F5A623', '#2E9B62', '#8B5CF6', '#EC4899']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // Chart 4: Department Performance Multi-Bar Chart
+    function renderDepartmentChart(deptData) {
+      const ctx = document.getElementById('chart-department-canvas');
+      if (!ctx) return;
+      if (deptChartInstance) deptChartInstance.destroy();
+
+      deptChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: deptData.map(d => d.department_name),
+          datasets: [
+            {
+              label: 'Total',
+              data: deptData.map(d => d.total || 0),
+              backgroundColor: '#176B87'
+            },
+            {
+              label: 'Resolved',
+              data: deptData.map(d => d.resolved || 0),
+              backgroundColor: '#2E9B62'
+            },
+            {
+              label: 'Pending',
+              data: deptData.map(d => d.pending || 0),
+              backgroundColor: '#F5A623'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // Location Insights Table
+    function renderLocationInsights(locations) {
+      const container = document.getElementById('analytics-location-container');
+      if (!container) return;
+
+      if (locations.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-muted">No location insights available for this period.</div>`;
+        return;
+      }
+
+      const rows = locations.map(loc => {
+        const pct = loc.count > 0 ? Math.round(((loc.resolved_count || 0) / loc.count) * 100) : 0;
+        return `
+          <tr>
+            <td data-label="Location Address"><strong class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${loc.location_address}</strong></td>
+            <td data-label="Total Reported"><span class="badge bg-light text-dark border fw-bold px-3 py-1">${loc.count}</span></td>
+            <td data-label="Resolved"><span class="text-success fw-bold">${loc.resolved_count || 0}</span></td>
+            <td data-label="Resolution Rate">
+              <div class="d-flex align-items-center w-100 justify-content-end justify-content-md-start">
+                <div class="progress flex-grow-1 me-2" style="height: 8px; max-width: 120px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%"></div>
+                </div>
+                <span class="small fw-bold text-secondary">${pct}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="table-responsive">
+          <table class="table table-hover table-civic responsive-data-grid align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Location / Area / Ward Address</th>
+                <th>Total Reported</th>
+                <th>Resolved</th>
+                <th>Resolution Rate Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

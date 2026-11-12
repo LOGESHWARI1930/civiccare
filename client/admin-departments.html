@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Admin Department Management – CivicCare</title>
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#176B87">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CivicCare">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <!-- CivicCare Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+  <!-- Dynamic Header / Navbar -->
+  <div id="navbar-container"></div>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar & Mobile Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Title & Action Bar -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-extrabold mb-1"><i class="bi bi-building text-primary me-2"></i>Municipal Department Management</h2>
+          <p class="text-muted mb-0">Manage city departments, officer allocations, active grievance queues, and resolution tracking</p>
+        </div>
+        <div>
+          <button class="btn btn-primary fw-bold" onclick="openAddDeptModal()">
+            <i class="bi bi-plus-lg me-1"></i> Add Department
+          </button>
+        </div>
+      </div>
+
+      <!-- Department Table Registry Card -->
+      <div class="card-civic">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-journal-bookmark-fill text-primary me-2"></i>Department Directory</h5>
+          <span class="badge bg-primary rounded-pill px-3 py-2" id="dept-count-badge">0 Departments</span>
+        </div>
+        <div class="card-body p-0" id="departments-table-container">
+          <div class="p-5 text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted small mt-2">Loading departments from database...</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Add / Edit Department Modal -->
+  <div class="modal fade" id="deptFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white py-3">
+          <h5 class="modal-title fw-bold" id="deptModalTitle"><i class="bi bi-building me-2"></i>Add Department</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="dept-form">
+          <input type="hidden" id="modal-dept-id" value="">
+          <div class="modal-body p-4">
+            
+            <!-- Department Name -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">Department Name <span class="text-danger">*</span></label>
+              <input type="text" id="modal-dept-name" name="name" class="form-control" placeholder="e.g. Public Works Department (PWD)" required>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">Description</label>
+              <textarea id="modal-dept-description" name="description" class="form-control" rows="3" placeholder="Scope of responsibilities, jurisdiction, and services handled..."></textarea>
+            </div>
+
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" id="modal-save-btn" class="btn btn-primary fw-bold">
+              <i class="bi bi-check-lg me-1"></i> Save Department
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Department Details Modal -->
+  <div class="modal fade" id="viewDeptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white py-3">
+          <h5 class="modal-title fw-bold" id="view-dept-name"><i class="bi bi-building me-2"></i>Department Overview</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4 bg-light">
+          
+          <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="fw-bold text-primary mb-1">Description</h6>
+              <p class="text-secondary small mb-3" id="view-dept-desc">No description.</p>
+              
+              <div class="row g-3 text-center border-top pt-3">
+                <div class="col-4">
+                  <small class="text-muted d-block">Assigned Officers</small>
+                  <h4 class="fw-bold text-primary mb-0" id="view-dept-officers-count">0</h4>
+                </div>
+                <div class="col-4 border-start border-end">
+                  <small class="text-muted d-block">Active Complaints</small>
+                  <h4 class="fw-bold text-warning mb-0" id="view-dept-active-count">0</h4>
+                </div>
+                <div class="col-4">
+                  <small class="text-muted d-block">Resolved Complaints</small>
+                  <h4 class="fw-bold text-success mb-0" id="view-dept-resolved-count">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Officers List -->
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-bold text-primary border-bottom py-2">
+              <i class="bi bi-people me-2"></i>Field Officers List
+            </div>
+            <div class="card-body p-0" id="view-dept-officers-list">
+              <div class="p-3 text-center text-muted small">Loading officers...</div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    let departmentsData = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Auth.requireAuth(['admin']);
+      fetchDepartmentsRegistry();
+    });
+
+    /**
+     * Fetch Departments from GET /api/admin/departments
+     */
+    async function fetchDepartmentsRegistry() {
+      const container = document.getElementById('departments-table-container');
+      container.innerHTML = `<div class="p-5 text-center"><div class="spinner-border text-primary"></div></div>`;
+
+      try {
+        const res = await apiRequest('/admin/departments');
+        if (!res.success) return;
+
+        departmentsData = res.departments || [];
+        document.getElementById('dept-count-badge').textContent = `${departmentsData.length} Departments`;
+
+        if (departmentsData.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-5 px-3">
+              <div class="fs-1 text-muted mb-2"><i class="bi bi-building-dash"></i></div>
+              <h5 class="fw-bold text-dark mb-1">No departments registered</h5>
+              <p class="text-muted small mb-0">Click "+ Add Department" to create your first municipal sector.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const rows = departmentsData.map(d => `
+          <tr>
+            <td data-label="Department">
+              <a href="#" onclick="openViewDeptModal(${d.id})" class="fw-bold text-decoration-none text-primary fs-6">${d.name}</a>
+            </td>
+            <td data-label="Description">
+              <div class="text-truncate small text-secondary" style="max-width: 280px;" title="${d.description || ''}">
+                ${d.description || 'No description provided.'}
+              </div>
+            </td>
+            <td data-label="Officer Count">
+              <span class="badge bg-info text-dark border px-3 py-1 fw-bold">
+                <i class="bi bi-people me-1"></i>${d.officer_count || 0} Officers
+              </span>
+            </td>
+            <td data-label="Active Complaints">
+              <span class="badge bg-warning text-dark border px-3 py-1 fw-bold">
+                <i class="bi bi-hourglass-split me-1"></i>${d.active_complaints || 0} Active
+              </span>
+            </td>
+            <td data-label="Resolved Complaints">
+              <span class="badge bg-success border px-3 py-1 fw-bold">
+                <i class="bi bi-check-circle me-1"></i>${d.resolved_complaints || 0} Resolved
+              </span>
+            </td>
+            <td data-label="Actions">
+              <div class="d-flex gap-1 justify-content-end flex-wrap" role="group">
+                <button class="btn btn-sm btn-outline-primary" onclick="openViewDeptModal(${d.id})" title="View Overview">
+                  <i class="bi bi-eye-fill me-1"></i> View
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="openEditDeptModal(${d.id})" title="Edit Department">
+                  <i class="bi bi-pencil-fill me-1"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteDept(${d.id})" title="Delete Department">
+                  <i class="bi bi-trash-fill"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+
+        container.innerHTML = `
+          <div class="table-responsive">
+            <table class="table table-hover table-civic responsive-data-grid align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Department</th>
+                  <th>Description</th>
+                  <th>Officer Count</th>
+                  <th>Active Complaints</th>
+                  <th>Resolved Complaints</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+      } catch (err) {
+        console.error('Fetch Departments Error:', err);
+        container.innerHTML = `<div class="alert alert-danger m-3">Failed to load department registry.</div>`;
+      }
+    }
+
+    /**
+     * Open Add Department Modal
+     */
+    function openAddDeptModal() {
+      document.getElementById('deptModalTitle').innerHTML = `<i class="bi bi-building me-2"></i>Add Department`;
+      document.getElementById('modal-dept-id').value = '';
+      document.getElementById('modal-dept-name').value = '';
+      document.getElementById('modal-dept-description').value = '';
+
+      const modal = new bootstrap.Modal(document.getElementById('deptFormModal'));
+      modal.show();
+    }
+
+    /**
+     * Open Edit Department Modal
+     */
+    function openEditDeptModal(id) {
+      const dept = departmentsData.find(d => d.id === id);
+      if (!dept) return;
+
+      document.getElementById('deptModalTitle').innerHTML = `<i class="bi bi-pencil-square me-2"></i>Edit Department`;
+      document.getElementById('modal-dept-id').value = dept.id;
+      document.getElementById('modal-dept-name').value = dept.name;
+      document.getElementById('modal-dept-description').value = dept.description || '';
+
+      const modal = new bootstrap.Modal(document.getElementById('deptFormModal'));
+      modal.show();
+    }
+
+    /**
+     * Submit Add/Edit Department Form
+     */
+    document.getElementById('dept-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('modal-dept-id').value;
+      const name = document.getElementById('modal-dept-name').value.trim();
+      const description = document.getElementById('modal-dept-description').value.trim();
+
+      const btn = document.getElementById('modal-save-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Saving...`;
+
+      try {
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/admin/departments/${id}` : '/admin/departments';
+
+        const res = await apiRequest(url, method, { name, description });
+
+        if (res.success) {
+          showToast(res.message || 'Department saved successfully!', 'success');
+          bootstrap.Modal.getInstance(document.getElementById('deptFormModal')).hide();
+          fetchDepartmentsRegistry();
+        } else {
+          showToast(res.message || 'Failed to save department.', 'danger');
+        }
+      } catch (err) {
+        showToast(err.message || 'Error saving department.', 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-check-lg me-1"></i> Save Department`;
+      }
+    });
+
+    /**
+     * Open View Department Modal
+     */
+    async function openViewDeptModal(id) {
+      const dept = departmentsData.find(d => d.id === id);
+      if (!dept) return;
+
+      document.getElementById('view-dept-name').innerHTML = `<i class="bi bi-building me-2"></i>${dept.name}`;
+      document.getElementById('view-dept-desc').textContent = dept.description || 'No description provided.';
+      document.getElementById('view-dept-officers-count').textContent = dept.officer_count || 0;
+      document.getElementById('view-dept-active-count').textContent = dept.active_complaints || 0;
+      document.getElementById('view-dept-resolved-count').textContent = dept.resolved_complaints || 0;
+
+      const listContainer = document.getElementById('view-dept-officers-list');
+      listContainer.innerHTML = `<div class="p-3 text-center"><div class="spinner-border spinner-border-sm text-primary"></div></div>`;
+
+      const modal = new bootstrap.Modal(document.getElementById('viewDeptModal'));
+      modal.show();
+
+      try {
+        const resOff = await apiRequest(`/departments/${id}/officers`);
+        if (resOff.success && resOff.officers) {
+          const officers = resOff.officers;
+          if (officers.length === 0) {
+            listContainer.innerHTML = `<div class="p-3 text-center text-muted small">No field officers assigned to this department yet.</div>`;
+            return;
+          }
+
+          const rows = officers.map(o => `
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+              <div>
+                <span class="fw-bold text-dark">${o.officer_name}</span>
+                <span class="badge bg-secondary ms-2">${o.employee_id}</span><br>
+                <small class="text-muted"><i class="bi bi-envelope me-1"></i>${o.officer_email}</small>
+              </div>
+              <div>
+                <span class="badge bg-info text-dark">Active Workload: ${o.current_active_workload || 0}</span>
+              </div>
+            </div>
+          `).join('');
+
+          listContainer.innerHTML = rows;
+        }
+      } catch (err) {
+        listContainer.innerHTML = `<div class="p-3 text-center text-danger small">Failed to load department officers.</div>`;
+      }
+    }
+
+    /**
+     * Confirm & Delete Department (with safety checks)
+     */
+    async function confirmDeleteDept(id) {
+      const dept = departmentsData.find(d => d.id === id);
+      if (!dept) return;
+
+      if (!confirm(`Are you sure you want to delete department "${dept.name}"?`)) return;
+
+      try {
+        const res = await apiRequest(`/admin/departments/${id}`, 'DELETE');
+        if (res.success) {
+          showToast(res.message || 'Department deleted successfully!', 'success');
+          fetchDepartmentsRegistry();
+        } else {
+          showToast(res.message || 'Failed to delete department.', 'danger');
+        }
+      } catch (err) {
+        showToast(err.message || 'Cannot delete department due to active dependencies.', 'danger');
+      }
+    }
+  </script>
+</body>
+</html>

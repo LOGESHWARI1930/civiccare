@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Officer Complaint Resolution – CivicCare</title>
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#176B87">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CivicCare">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <!-- CivicCare Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+  <!-- Dynamic Header / Navbar -->
+  <div id="navbar-container"></div>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar & Mobile Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Title & Navigation -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <a href="/officer/dashboard" class="text-decoration-none text-secondary small fw-bold d-block mb-1">
+            <i class="bi bi-arrow-left me-1"></i> Back to Officer Dashboard
+          </a>
+          <h2 class="fw-extrabold mb-1"><i class="bi bi-tools text-primary me-2"></i>Field Resolution & Status Control</h2>
+          <p class="text-muted mb-0">Inspect grievance details, update field work status, and upload repair evidence</p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="officer-detail-loading" class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted small mt-2">Loading grievance details from database...</p>
+      </div>
+
+      <!-- 403 / Unauthorized State -->
+      <div id="officer-unauthorized-state" class="p-5 text-center bg-white rounded border shadow-sm d-none">
+        <i class="bi bi-shield-lock-fill text-danger fs-1 mb-3"></i>
+        <h4 class="fw-bold text-dark mb-2">Access Denied</h4>
+        <p class="text-muted mb-3">Only the assigned officer can access or modify this complaint.</p>
+        <a href="/officer/dashboard" class="btn btn-primary"><i class="bi bi-arrow-left me-1"></i> Return to My Workspace</a>
+      </div>
+
+      <!-- Main Complaint Resolution View (Hidden until loaded) -->
+      <div id="officer-detail-content" class="d-none">
+        
+        <!-- Alert Success Message Container -->
+        <div id="resolution-success-alert" class="alert alert-success d-flex align-items-center shadow-sm mb-4 d-none" role="alert">
+          <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+          <div>
+            <h6 class="fw-bold mb-0" id="success-alert-title">Complaint marked as resolved successfully.</h6>
+            <span class="small" id="success-alert-msg">Resolution evidence and status history have been updated. Citizen has been notified.</span>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          
+          <!-- Left Column: Citizen Complaint Details & Location -->
+          <div class="col-lg-7">
+            
+            <!-- Grievance Information Card -->
+            <div class="card-civic mb-4">
+              <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                  <h5 class="mb-0 fw-bold text-dark" id="off-complaint-number">GRV-2026-00000</h5>
+                  <span class="badge bg-light text-dark border" id="off-category">Category</span>
+                </div>
+                <div id="off-status-badge"></div>
+              </div>
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h4 class="fw-bold text-dark mb-0" id="off-title">Title</h4>
+                  <div id="off-priority-badge"></div>
+                </div>
+
+                <p class="text-secondary mb-3 mt-2 style-description" id="off-description">Full description...</p>
+
+                <!-- Citizen Uploaded Photo Evidence -->
+                <div id="off-citizen-image-box" class="mb-4 d-none">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-muted fw-bold"><i class="bi bi-image me-1"></i>Citizen Uploaded Photo Evidence</small>
+                    <small class="text-primary" style="cursor: pointer;" onclick="openImageLightbox(document.getElementById('off-citizen-image').src, 'Citizen Grievance Photo')"><i class="bi bi-zoom-in me-1"></i>Tap to Zoom</small>
+                  </div>
+                  <img id="off-citizen-image" src="" alt="Citizen Evidence" class="img-fluid rounded border shadow-sm" style="max-height: 250px; object-fit: cover; width: 100%; cursor: pointer;" onclick="openImageLightbox(this.src, 'Citizen Grievance Photo')">
+                </div>
+
+                <!-- Citizen Info Box -->
+                <div class="p-3 bg-light rounded border mb-3">
+                  <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-vcard me-2"></i>Citizen Details</h6>
+                  <div class="row g-2 small">
+                    <div class="col-sm-6"><strong>Citizen Name:</strong> <span id="off-citizen-name" class="text-dark"></span></div>
+                    <div class="col-sm-6"><strong>Contact Phone:</strong> <span id="off-citizen-phone" class="text-dark"></span></div>
+                    <div class="col-sm-6"><strong>Email:</strong> <span id="off-citizen-email" class="text-dark"></span></div>
+                    <div class="col-sm-6"><strong>Filing Date:</strong> <span id="off-created-at" class="text-dark"></span></div>
+                  </div>
+                </div>
+
+                <!-- Location Details & Leaflet Map -->
+                <div class="p-3 bg-light rounded border">
+                  <h6 class="fw-bold text-primary mb-2"><i class="bi bi-geo-alt-fill me-2"></i>Incident Location & Map</h6>
+                  <p class="text-dark small mb-2" id="off-location-address"><i class="bi bi-pin-map text-danger me-1"></i>Address</p>
+                  <div id="officer-leaflet-map" style="height: 200px; width: 100%;" class="rounded border mt-2"></div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Existing Resolution Proof Card (If already resolved) -->
+            <div id="officer-existing-resolution-card" class="card-civic border-success mb-4 d-none">
+              <div class="card-header bg-success text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Official Resolution Proof</h5>
+              </div>
+              <div class="card-body">
+                <p class="text-dark fw-bold mb-1" id="res-proof-desc">Resolution description</p>
+                <small class="text-muted d-block mb-3" id="res-proof-date">Resolved on: </small>
+
+                <div id="res-proof-img-box" class="d-none">
+                  <small class="text-muted d-block fw-bold mb-1">On-Site Evidence Photo:</small>
+                  <a id="res-proof-img-link" href="#" target="_blank">
+                    <img id="res-proof-img" src="" class="img-fluid rounded border shadow-sm" style="max-height: 250px; object-fit: cover; width: 100%;">
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Officer Status Control & Resolution Form -->
+          <div class="col-lg-5">
+            
+            <!-- Status Control Panel Card -->
+            <div class="card-civic sticky-top" style="top: 1.5rem;">
+              <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-sliders me-2"></i>Status Control & Action Panel</h5>
+              </div>
+              <div class="card-body p-4">
+                
+                <!-- Quick Status Stepper Buttons -->
+                <label class="form-label fw-bold small text-muted text-uppercase mb-2">Progress Status Controls</label>
+                <div class="d-grid gap-2 mb-4">
+                  
+                  <!-- Option 1: Assigned Status Indicator -->
+                  <div class="p-2 border rounded d-flex justify-content-between align-items-center bg-light">
+                    <span><i class="bi bi-person-check-fill text-warning me-2"></i>Assigned to You</span>
+                    <span class="badge bg-secondary" id="step-assigned-badge">Step 1</span>
+                  </div>
+
+                  <!-- Option 2: Mark In Progress Button -->
+                  <button type="button" id="btn-mark-in-progress" class="btn btn-outline-info text-dark font-weight-bold d-flex justify-content-between align-items-center" onclick="handleMarkInProgress()">
+                    <span><i class="bi bi-play-circle-fill text-info me-2"></i>Mark "In Progress"</span>
+                    <i class="bi bi-arrow-right"></i>
+                  </button>
+
+                  <!-- Option 3: Mark Resolved Switch Button -->
+                  <button type="button" id="btn-show-resolve-form" class="btn btn-success fw-bold d-flex justify-content-between align-items-center" onclick="toggleResolutionForm(true)">
+                    <span><i class="bi bi-check-circle-fill me-2"></i>Submit Resolution</span>
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+
+                </div>
+
+                <hr>
+
+                <!-- Resolution Submission Form Container -->
+                <div id="resolution-form-section" class="d-none">
+                  <h6 class="fw-bold text-success mb-3"><i class="bi bi-clipboard-check me-2"></i>Submit Resolution Details</h6>
+                  <form id="officer-resolution-form" enctype="multipart/form-data">
+                    <input type="hidden" name="complaint_id" id="form-complaint-id" value="">
+
+                    <!-- Resolution Description (Required) -->
+                    <div class="mb-3">
+                      <label class="form-label fw-bold small">Resolution Description <span class="text-danger">*</span></label>
+                      <textarea name="description" id="field-res-description" class="form-control" rows="4" placeholder="e.g. Pothole repaired and road surface restored." required></textarea>
+                      <div class="form-text small">Describe repairs completed, materials used, and verification details.</div>
+                    </div>
+
+                    <!-- Resolution Evidence Image (File Upload / Field Camera) -->
+                    <div class="mb-4">
+                      <label class="form-label fw-bold small">Resolution Evidence Image <span class="text-muted font-normal">(Photo Proof / Camera)</span></label>
+                      <input type="file" name="evidence_image" id="field-res-image" class="form-control" accept="image/*" capture="environment">
+                      <div class="form-text small text-muted"><i class="bi bi-camera me-1"></i>Tap to snap photo directly on mobile camera or pick from gallery.</div>
+                    </div>
+
+                    <!-- Submit Resolution Button -->
+                    <div class="d-grid gap-2">
+                      <button type="submit" id="btn-submit-resolution" class="btn btn-success btn-lg fw-bold">
+                        <i class="bi bi-check-lg me-2"></i>Mark as Resolved
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleResolutionForm(false)">Cancel</button>
+                    </div>
+                  </form>
+                </div>
+
+                <!-- Status Timeline History List -->
+                <div class="mt-4 pt-3 border-top">
+                  <small class="fw-bold text-secondary d-block mb-2"><i class="bi bi-clock-history me-1"></i>Status Audit Log</small>
+                  <ul class="list-group list-group-flush small" id="off-status-timeline">
+                    <!-- Populated via JS -->
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    let currentComplaintId = null;
+    let leafletMapInstance = null;
+    let complaintData = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Auth.requireAuth(['officer']);
+
+      // Extract complaint ID from path (/officer/complaints/:id) or query param (?id=X)
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      let idFromPath = null;
+      if (pathParts.length >= 3 && pathParts[0] === 'officer' && pathParts[1] === 'complaints') {
+        idFromPath = pathParts[2];
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      currentComplaintId = idFromPath || urlParams.get('id');
+
+      if (!currentComplaintId) {
+        showToast('Invalid complaint ID.', 'danger');
+        setTimeout(() => window.location.href = '/officer/dashboard', 1500);
+        return;
+      }
+
+      loadOfficerComplaintDetails(currentComplaintId);
+    });
+
+    /**
+     * Load complaint details with security role checks from GET /api/officer/complaints/:id
+     */
+    async function loadOfficerComplaintDetails(id) {
+      try {
+        const res = await apiRequest(`/officer/complaints/${id}`);
+
+        if (!res.success) {
+          document.getElementById('officer-detail-loading').classList.add('d-none');
+          document.getElementById('officer-unauthorized-state').classList.remove('d-none');
+          return;
+        }
+
+        complaintData = res.complaint;
+        const history = res.history || [];
+
+        // Set hidden form complaint_id
+        document.getElementById('form-complaint-id').value = complaintData.id;
+
+        // Populate Complaint Info UI
+        document.getElementById('off-complaint-number').textContent = complaintData.complaint_number;
+        document.getElementById('off-category').textContent = complaintData.category;
+        document.getElementById('off-status-badge').innerHTML = getStatusBadge(complaintData.status);
+        document.getElementById('off-priority-badge').innerHTML = getPriorityBadge(complaintData.priority);
+        document.getElementById('off-title').textContent = complaintData.title;
+        document.getElementById('off-description').textContent = complaintData.description;
+
+        document.getElementById('off-citizen-name').textContent = complaintData.citizen_name || 'N/A';
+        document.getElementById('off-citizen-phone').textContent = complaintData.citizen_phone || 'N/A';
+        document.getElementById('off-citizen-email').textContent = complaintData.citizen_email || 'N/A';
+        document.getElementById('off-created-at').textContent = new Date(complaintData.created_at).toLocaleString();
+
+        document.getElementById('off-location-address').textContent = complaintData.location_address || 'Address logged.';
+
+        // Citizen Evidence Image
+        if (complaintData.image_url) {
+          document.getElementById('off-citizen-image').src = complaintData.image_url;
+          document.getElementById('off-citizen-image-link').href = complaintData.image_url;
+          document.getElementById('off-citizen-image-box').classList.remove('d-none');
+        }
+
+        // Leaflet Map Rendering
+        if (complaintData.latitude && complaintData.longitude && window.L) {
+          if (leafletMapInstance) leafletMapInstance.remove();
+          leafletMapInstance = L.map('officer-leaflet-map').setView([complaintData.latitude, complaintData.longitude], 14);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+          }).addTo(leafletMapInstance);
+          L.marker([complaintData.latitude, complaintData.longitude]).addTo(leafletMapInstance)
+            .bindPopup(`<b>${complaintData.complaint_number}</b><br>${complaintData.title}`).openPopup();
+        } else {
+          document.getElementById('officer-leaflet-map').innerHTML = `<div class="p-3 text-center text-muted small bg-white rounded h-100 d-flex align-items-center justify-content-center">No GPS coordinates logged for map.</div>`;
+        }
+
+        // Render Status History Timeline
+        const timelineList = document.getElementById('off-status-timeline');
+        timelineList.innerHTML = history.map(h => `
+          <li class="list-group-item px-0 bg-transparent">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold">${h.status}</span>
+              <small class="text-muted">${new Date(h.created_at).toLocaleDateString()}</small>
+            </div>
+            <span class="text-muted d-block small">${h.comment || ''}</span>
+          </li>
+        `).join('');
+
+        // Handle Resolution State Display
+        if (complaintData.status === 'Resolved') {
+          document.getElementById('btn-mark-in-progress').classList.add('disabled');
+          document.getElementById('btn-show-resolve-form').classList.add('d-none');
+          
+          if (complaintData.resolution_description) {
+            document.getElementById('res-proof-desc').textContent = complaintData.resolution_description;
+            document.getElementById('res-proof-date').textContent = `Resolved on: ${new Date(complaintData.resolved_at || complaintData.updated_at).toLocaleString()}`;
+            if (complaintData.resolution_evidence_url) {
+              document.getElementById('res-proof-img').src = complaintData.resolution_evidence_url;
+              document.getElementById('res-proof-img-link').href = complaintData.resolution_evidence_url;
+              document.getElementById('res-proof-img-box').classList.remove('d-none');
+            }
+            document.getElementById('officer-existing-resolution-card').classList.remove('d-none');
+          }
+
+          document.getElementById('resolution-success-alert').classList.remove('d-none');
+        } else if (complaintData.status === 'In Progress') {
+          document.getElementById('btn-mark-in-progress').classList.add('btn-info', 'text-white');
+          document.getElementById('btn-mark-in-progress').innerHTML = `<span><i class="bi bi-check2-circle me-2"></i>Currently In Progress</span>`;
+          toggleResolutionForm(true);
+        }
+
+        // Show content area
+        document.getElementById('officer-detail-loading').classList.add('d-none');
+        document.getElementById('officer-detail-content').classList.remove('d-none');
+
+      } catch (err) {
+        console.error('Load Officer Complaint Details Error:', err);
+        document.getElementById('officer-detail-loading').classList.add('d-none');
+        document.getElementById('officer-unauthorized-state').classList.remove('d-none');
+      }
+    }
+
+    /**
+     * Mark Status In Progress Handler
+     */
+    async function handleMarkInProgress() {
+      const btn = document.getElementById('btn-mark-in-progress');
+      btn.disabled = true;
+
+      try {
+        const res = await apiRequest(`/complaints/${currentComplaintId}/status`, 'PUT', {
+          status: 'In Progress',
+          comment: 'Field officer initiated repair work.'
+        });
+
+        if (res.success) {
+          showToast('Complaint status updated to "In Progress".', 'info');
+          loadOfficerComplaintDetails(currentComplaintId);
+          toggleResolutionForm(true);
+        } else {
+          showToast(res.message || 'Failed to update status.', 'danger');
+          btn.disabled = false;
+        }
+      } catch (err) {
+        showToast('Error updating status.', 'danger');
+        btn.disabled = false;
+      }
+    }
+
+    /**
+     * Toggle Resolution Form View
+     */
+    function toggleResolutionForm(show) {
+      const formSec = document.getElementById('resolution-form-section');
+      if (show) {
+        formSec.classList.remove('d-none');
+        document.getElementById('field-res-description').focus();
+      } else {
+        formSec.classList.add('d-none');
+      }
+    }
+
+    // Submit Resolution Form Handler
+    document.getElementById('officer-resolution-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('btn-submit-resolution');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Uploading & Saving...`;
+
+      const form = document.getElementById('officer-resolution-form');
+      const formData = new FormData(form);
+
+      try {
+        const res = await apiRequest('/officers/resolve', 'POST', formData, true);
+
+        if (res.success) {
+          // Display success message explicitly requested by prompt
+          showToast('Complaint marked as resolved successfully.', 'success');
+          document.getElementById('resolution-success-alert').classList.remove('d-none');
+          toggleResolutionForm(false);
+          loadOfficerComplaintDetails(currentComplaintId);
+        } else {
+          showToast(res.message || 'Failed to submit resolution.', 'danger');
+          btn.disabled = false;
+          btn.innerHTML = `<i class="bi bi-check-lg me-2"></i>Mark as Resolved`;
+        }
+      } catch (err) {
+        console.error('Submit Resolution Error:', err);
+        showToast(err.message || 'Failed to complete resolution submission.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-check-lg me-2"></i>Mark as Resolved`;
+      }
+    });
+  </script>
+</body>
+</html>

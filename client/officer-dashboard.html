@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Officer Field Workspace – CivicCare</title>
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <meta name="theme-color" content="#176B87">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CivicCare">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <!-- CivicCare Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .highlight-urgent-row {
+      background-color: #FFF5F5 !important;
+      border-left: 4px solid #DC2626 !important;
+    }
+    .highlight-high-row {
+      background-color: #FFFBEB !important;
+      border-left: 4px solid #D97706 !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Header / Navbar -->
+  <div id="navbar-container"></div>
+
+  <div class="app-container">
+    <!-- Desktop Sidebar & Mobile Navigation -->
+    <div id="sidebar-container"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Title Bar with Time-based Greeting -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-extrabold mb-1" id="officer-greeting-title">Good Morning 👋</h2>
+          <p class="text-muted mb-0">Field Workspace & Assigned Grievances Action Queue</p>
+        </div>
+        <div>
+          <button class="btn btn-outline-primary btn-sm" onclick="loadOfficerDashboard()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Queue</button>
+        </div>
+      </div>
+
+      <!-- 4 Statistics KPI Cards Row -->
+      <div class="row g-3 mb-4" id="officer-stats-cards">
+        <div class="col-12 text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted small mt-2">Loading officer statistics...</p>
+        </div>
+      </div>
+
+      <!-- Filter Toolbar for Officer Queue -->
+      <div class="bg-white p-3 rounded border mb-4 shadow-sm">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
+              <input type="text" id="officer-search-input" class="form-control" placeholder="Search by Complaint ID, Title or Location..." onkeyup="filterOfficerTable()">
+            </div>
+          </div>
+          <div class="col-md-4 col-6">
+            <select id="officer-status-filter" class="form-select" onchange="filterOfficerTable()">
+              <option value="All">All Statuses</option>
+              <option value="Assigned">Assigned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="col-md-4 col-6">
+            <select id="officer-priority-filter" class="form-select" onchange="filterOfficerTable()">
+              <option value="All">All Priorities</option>
+              <option value="Critical">Critical Only</option>
+              <option value="High">High Only</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Officer Assigned Complaints Table Card -->
+      <div class="card-civic">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-briefcase-fill me-2 text-primary"></i>My Assigned Complaints</h5>
+          <span class="badge bg-primary rounded-pill px-3 py-2" id="officer-assigned-badge">0 Complaints</span>
+        </div>
+        <div class="card-body p-0" id="officer-complaints-table-container">
+          <div class="p-5 text-center">
+            <div class="spinner-border text-primary"></div>
+            <p class="text-muted small mt-2">Loading assigned complaints...</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/officer.js"></script>
+</body>
+</html>
